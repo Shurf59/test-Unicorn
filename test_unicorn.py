@@ -3,10 +3,10 @@ from aiohttp import web
 import requests
 import json
 import argparse
-import http.client
 import time
 from threading import Thread
 from abstract import TestAbstractClass
+
 
 class Finance:
     wallet = {}
@@ -15,6 +15,7 @@ class Finance:
         'rub-eur': 0,
         'usd-eur': 0
     }
+
 
 class Wfo(TestAbstractClass):
 
@@ -28,7 +29,6 @@ class Wfo(TestAbstractClass):
                 Finance.wallet['rub'] / Finance.exchange_rates['rub-eur']), 2)
         return f'sum: {rub} rub / {usd} usd / {eur} eur'
 
-
     def financial_data():
         """Последовательно выводит: список валют в кошельке и их значение, курс валют, сумму всех средств в каждой валюте"""
         wallet_data = ''
@@ -40,8 +40,6 @@ class Wfo(TestAbstractClass):
         wallet_data += f"\n"
         wallet_data += Wfo.sum_wallet()
         return wallet_data
-
-
 
     def update_exchange_rates(period_rates):
         """Выполняет 1 пункт тз. На вход получает период обновления в секундах.
@@ -63,7 +61,6 @@ class Wfo(TestAbstractClass):
             logging.info('Данные курса валют успешно обновлены.')
             time.sleep(period_rates)
 
-
     def change_control_finance(period_wallet):
         """Функция для реализации условий 5 пункта тз.
           На вход получает период обновления. Сравнивает текущие значения в кошелька и курса валют с данными из
@@ -82,8 +79,6 @@ class Wfo(TestAbstractClass):
                     test_exchange_rates[key] = value
                 logging.info(f'\n{Wfo.financial_data()}')
 
-
-
     """Все что ниже, удовлетворяет требования 4 пункта тз. Запуск локального сервера, обработка post и get запросов"""
 
     async def get_amount(request):
@@ -94,7 +89,6 @@ class Wfo(TestAbstractClass):
         logging.debug(response)
         return response
 
-
     async def get_rub(request):
         """Обробатывает гет запрос и выводит на веб страницу: данные о количестве рублей."""
         logging.debug(request)
@@ -102,7 +96,6 @@ class Wfo(TestAbstractClass):
         response = web.Response(text=rub_data)
         logging.debug(response)
         return response
-
 
     async def get_usd(request):
         """Обробатывает гет запрос и выводит на веб страницу: данные о количестве долларов."""
@@ -112,7 +105,6 @@ class Wfo(TestAbstractClass):
         logging.debug(response)
         return response
 
-
     async def get_eur(request):
         """Обробатывает гет запрос и выводит на веб страницу: данные о количестве евро."""
         logging.debug(request)
@@ -121,7 +113,6 @@ class Wfo(TestAbstractClass):
         logging.debug(response)
         return response
 
-
     async def post_wallet(request):
         """Обробатывает post запрос с входящим json и меняет количество валюты в кошельке на данные из json"""
         logging.debug(request)
@@ -129,11 +120,11 @@ class Wfo(TestAbstractClass):
         data_dict = json.loads(data)
         for key, value in data_dict.items():
             if value < 0:
-                logging.debug(web.Response(text='В кошельке не может быть отрицательных значений.'))
-                return web.Response(text='В кошельке не может быть отрицательных значений.')
+                response = web.Response(text='В кошельке не может быть отрицательных значений.')
+                logging.debug(response)
+                return response
             else:
                 Finance.wallet[key] = value
-
 
     async def post_change_wallet(request):
         """Обробатывает post запрос с входящим json и суммирует
@@ -147,16 +138,17 @@ class Wfo(TestAbstractClass):
             else:
                 Finance.wallet[key] += value
 
+
 """Получает аргументы для 1,2,3 пунктов тз."""
 parser = argparse.ArgumentParser()
 parser.add_argument("-p", "--period", type=int, nargs='?', const='1', default='1',
                     help="period for receiving data on exchange rates. in minutes")
 parser.add_argument("-r", "--rub", type=float, nargs='?', const='0', default='0',
-                    help="")
+                    help="the number of rubles in the wallet")
 parser.add_argument("-u", "--usd", type=float, nargs='?', const='0', default='0',
-                    help="")
+                    help="the number of dollars in the wallet")
 parser.add_argument("-e", "--eur", type=float, nargs='?', const='0', default='0',
-                    help="")
+                    help="the amount of euros in the wallet")
 parser.add_argument("-d", "--debug", nargs='?', const='1', default='1',
                     help="allowable values: 0, 1, true, false, True, False, y, n, Y, N")
 args = parser.parse_args()
@@ -195,4 +187,3 @@ app.add_routes([
 
 logging.info('Старт локального сервера.')
 web.run_app(app, host='0.0.0.0', port=8080)
-
