@@ -72,7 +72,6 @@ class Wfo(TestAbstractClass):
         test_wallet = {}
         test_exchange_rates = {}
         while True:
-            # await time.sleep(period_wallet)
             if Finance.wallet != test_wallet or Finance.exchange_rates != test_exchange_rates:
                 for key, value in Finance.wallet.items():
                     test_wallet[key] = value
@@ -81,6 +80,22 @@ class Wfo(TestAbstractClass):
                 result = await Wfo.financial_data()
                 logging.info(f'\n{result}')
             await asyncio.sleep(period_wallet)
+
+    async def create_tasks():
+        """Создание асинхронных задачь для функций обновления курса валют и контроля обновления кошелька(курса валют)"""
+        task_update_exchange_rates = who_loop.create_task(Wfo.update_exchange_rates(args.period * 60))
+        task_change_control_finance = who_loop.create_task(Wfo.change_control_finance(60))
+        await asyncio.wait([task_update_exchange_rates, task_change_control_finance])
+
+    async def run_server():
+        """Запуск локального сервера и задачь для цикла"""
+        runner = web.AppRunner(app)
+        await runner.setup()
+        local_server = web.TCPSite(runner, '0.0.0.0', 8080)
+        logging.info('Запуск сервера')
+        await local_server.start()
+        logging.info('Запуск задач по обновлению данных')
+        return await Wfo.create_tasks()
 
     """Все что ниже, удовлетворяет требования 4 пункта тз. Запуск локального сервера, обработка post и get запросов"""
 
@@ -129,7 +144,7 @@ class Wfo(TestAbstractClass):
                 return response
             else:
                 Finance.wallet[key] = value
-        return web.json_response({"status":"ok"})
+        return web.Response(text='200 OK')
 
     async def post_change_wallet(request):
         """Обробатывает post запрос с входящим json и суммирует
@@ -142,7 +157,7 @@ class Wfo(TestAbstractClass):
                 Finance.wallet[key] = 0
             else:
                 Finance.wallet[key] += value
-        return web.json_response({"status":"ok"})
+        return web.Response(text='200 OK')
 
 """Получает аргументы для 1,2,3 пунктов тз."""
 parser = argparse.ArgumentParser()
@@ -185,19 +200,10 @@ app.add_routes([
     web.post('/amount/set', Wfo.post_wallet),
     web.post('/modify', Wfo.post_change_wallet)
 ])
-async def test():
-    task_update_exchange_rates = who_loop.create_task(Wfo.update_exchange_rates(args.period * 60))
-    task_change_control_finance = who_loop.create_task(Wfo.change_control_finance(60))
-    await asyncio.wait([task_update_exchange_rates,task_change_control_finance])
-
-async def run():
-    runner = web.AppRunner(app)
-    await runner.setup()
-    site = web.TCPSite(runner, '0.0.0.0', 8080)
-    await site.start()
-    return await test()
 
 if __name__ == '__main__':
-    who_loop = asyncio.get_event_loop()
-    who_loop.run_until_complete(run())
-
+    try:
+        who_loop = asyncio.get_event_loop()
+        who_loop.run_until_complete(Wfo.run_server())
+    except KeyboardInterrupt:
+        logging.info('Программа остановлена')

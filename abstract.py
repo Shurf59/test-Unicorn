@@ -18,6 +18,14 @@ class TestAbstractClass(ABC):
         pass
 
     @abstractmethod
+    async def create_tasks():
+        pass
+
+    @abstractmethod
+    async def run_server():
+        pass
+
+    @abstractmethod
     async def get_amount(request):
         pass
 
