@@ -83,8 +83,9 @@ class Wfo(TestAbstractClass):
 
     async def create_tasks():
         """Создание асинхронных задачь для функций обновления курса валют и контроля обновления кошелька(курса валют)"""
-        task_update_exchange_rates = who_loop.create_task(Wfo.update_exchange_rates(args.period * 60))
-        task_change_control_finance = who_loop.create_task(Wfo.change_control_finance(60))
+        one_minute = 60
+        task_update_exchange_rates = who_loop.create_task(Wfo.update_exchange_rates(args.period * one_minute))
+        task_change_control_finance = who_loop.create_task(Wfo.change_control_finance(one_minute))
         await asyncio.wait([task_update_exchange_rates, task_change_control_finance])
 
     async def run_server():
